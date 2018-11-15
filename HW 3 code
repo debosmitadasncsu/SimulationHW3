@@ -1,0 +1,49 @@
+install.packages('Rlab')
+install.packages('truncnorm')
+install.packages('PerformanceAnalytics')
+library(Rlab)
+library(truncnorm)
+library(dplyr)
+library(PerformanceAnalytics)
+
+#initialize distributions we will plot
+set.seed(999)
+Proportion_wet <- rep(0,100000)
+Ph_dist <- rep(0,100000)
+Pr_dist <- rep(0,100000)
+for (i in 1:100000){
+  
+  num_wells <- runif(1,10,30) #uniform distribution for number of wells
+  
+  wet_wells <- 0 # initialize 0 producing wells
+  
+  Ph <- rep(0,round(num_wells))
+  Pr <- rep(0,round(num_wells))
+  
+  #components of producing probabiliy
+  Ph <- rtruncnorm(1,0,1,mean = .99, sd = .05)
+  Pr <- rtruncnorm(1,0,1, mean = .8, sd = .1)
+  
+  #put them all together
+  Ppw <- Ph*Pr
+  
+  #bernoulli distribution decides if it is producing or not
+  wet_wells <- rbern(round(num_wells),Ppw)
+  
+  #take average for hydrocarbons and reservoir for each simulation
+  Ph_dist[i] <- mean(Ph)
+  Pr_dist[i] <- mean(Pr)
+  
+  #find proportion
+  Proportion_wet[i] <- sum(wet_wells)/round(num_wells)
+  
+}
+#calculations
+Value_at_Risk <- quantile(Proportion_wet,.05)
+Shortfall <- mean(Proportion_wet[Proportion_wet < Value_at_Risk])
+#plots
+hist(Proportion_wet, breaks=50, main='Proportion of Producing Wells', xlab='Proportion Wet Wells', col= 'lightskyblue2')
+abline(v = Value_at_Risk, col="red", lwd=2)
+mtext("5% VaR = 0.52", at=Value_at_Risk, col="red")
+hist(Ph_dist, breaks=50, main='Hydrocarbon Probability Distribution', xlab='Hydrocarbon Probability', col= 'lightskyblue2')
+hist(Pr_dist, breaks=50, main='Reservoir Probability Distribution', xlab='Reservoir Probability', col= 'lightskyblue2')
